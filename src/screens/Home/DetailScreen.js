@@ -42,20 +42,33 @@ const DetailScreen = ({ route, navigation }) => {
   }, [placeId, placeData]);
 
   const handleFavorite = async () => {
+    if (!placeId) {
+      console.error("placeId is undefined");
+      return;
+    }
+  
     try {
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
       await AsyncStorage.setItem(`favorite-${placeId}`, newFavoriteStatus ? 'true' : 'false');
+  
+      const favoriteStore = await AsyncStorage.getItem('favoritePlaces');
+      const currentFavorites = favoriteStore ? JSON.parse(favoriteStore) : [];
       if (newFavoriteStatus) {
-        addToFavorites(placeDetails); // เพิ่มร้านที่ถูกใจ
+        currentFavorites.push(placeDetails); // เพิ่มร้านที่ถูกใจ
       } else {
-        addToFavorites(null); // ลบร้านที่ถูกใจออก (ถ้าต้องการ)
+        const updatedFavorites = currentFavorites.filter(item => item.placeId !== placeId);
+        await AsyncStorage.setItem('favoritePlaces', JSON.stringify(updatedFavorites)); // ลบร้านที่ถูกใจออก
       }
+  
+      // Update the parent screen (FavoriteScreen) when favorite is toggled
+      navigation.setParams({ favoritePlaces: currentFavorites });
+  
     } catch (error) {
       console.error("Error updating favorite status", error);
     }
-  };
-
+  };  
+  
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

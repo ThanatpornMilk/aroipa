@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const SERPAPI_KEY = "b20b9f17a94954ba64083620986c3fb4341a70aee4a60911d9410161c8f8183d"; // ใส่ API Key ของคุณ
+const SERPAPI_KEY = " "; // ใส่ API Key ของคุณ
 
 export const searchPlacesWithReviews = async () => {
   try {

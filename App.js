@@ -5,6 +5,9 @@ import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import NavBar from './src/components/Navbar'; 
 import DetailScreen from './src/screens/Home/DetailScreen';
 import FavoriteScreen from './src/screens/Favorite/FavoriteScreen';
+import Welcome from './src/screens/Welcome/Welcome';
+import Register from './src/screens/Welcome/Register';
+import Login from './src/screens/Welcome/Login';
 
 const Stack = createStackNavigator();
 
@@ -25,7 +28,7 @@ const App = () => {
 
   const addToFavorites = (place) => {
     setFavoritePlaces((prev) => {
-      if (!prev.some((item) => item.id === place.id)) {
+      if (!prev.some((item) => item.placeId === place.placeId)) {
         return [...prev, place];
       }
       return prev;
@@ -42,6 +45,21 @@ const App = () => {
           headerTitleStyle: { fontSize: 20, fontWeight: 'bold' }
         }}
       >
+        <Stack.Screen
+          name="Welcome"
+          component={Welcome}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={Login}
+          options={{ title: 'เข้าสู่ระบบ' }} 
+        />
+        <Stack.Screen
+          name="Register"
+          component={Register}
+          options={{ title: 'ลงทะเบียน' }} 
+        />
         <Stack.Screen
           name="Main"
           component={NavBar}

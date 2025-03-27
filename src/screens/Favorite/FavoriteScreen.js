@@ -1,17 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FavoriteScreen = ({ route }) => {
   const { favoritePlaces } = route.params || {}; // ตรวจสอบว่า route.params ไม่เป็น undefined หรือ null
-  if (!favoritePlaces) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.message}>ไม่พบข้อมูลร้านที่ถูกใจ</Text>
-      </View>
-    );
-  }
 
-  if (favoritePlaces.length === 0) {
+  if (!favoritePlaces || favoritePlaces.length === 0) {
     return (
       <View style={styles.container}>
         <Text style={styles.message}>ยังไม่มีร้านที่ถูกใจ</Text>
@@ -23,8 +17,8 @@ const FavoriteScreen = ({ route }) => {
     <View style={styles.container}>
       <Text style={styles.title}>ร้านที่ถูกใจ</Text>
       <FlatList
-        data={favoritePlaces} // ใช้ข้อมูลหลายรายการจาก favoritePlaces
-        keyExtractor={(item) => item.id.toString()}
+        data={favoritePlaces}
+        keyExtractor={(item) => item.placeId ? item.placeId.toString() : item.id ? item.id.toString() : 'unknown'} // ตรวจสอบว่า placeId หรือ id มีค่าก่อน
         renderItem={({ item }) => (
           <View style={styles.favoriteCard}>
             <Text style={styles.favoriteTitle}>{item.title}</Text>
@@ -35,6 +29,7 @@ const FavoriteScreen = ({ route }) => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
