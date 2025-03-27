@@ -7,13 +7,6 @@ export const searchPlacesWithReviews = async () => {
   try {
     const keywords = [
       "ร้านอาหาร", "ร้านกาแฟ", "ร้านเบเกอรี่", "คาเฟ่", 
-      "ร้านขนม", "ร้านอาหารญี่ปุ่น", "ร้านอาหารอิตาเลียน", 
-      "ร้านชานม", "ร้านเบเกอรี่", "ร้านน้ำผลไม้", "ร้านพิซซ่า",
-      "ร้านอาหารจีน", "ร้านอาหารเกาหลี", "ร้านสเต็ก", "ร้านบาร์บีคิว",
-      "ร้านอาหารซีฟู้ด", "ร้านข้าวมันไก่", "ร้านก๋วยเตี๋ยว", "ร้านข้าวราดแกง", 
-      "ร้านข้าวซอย", "ร้านบิงซู", "ร้านช็อกโกแลต", "ร้านกาแฟสด",
-      "ร้านน้ำปั่น", "ร้านขนมหวาน", "ร้านค็อกเทล", "ร้านไวน์",
-      "ร้านอาหารมังสวิรัติ", "ร้านอาหารอินเดีย", "ร้านอาหารเวียดนาม", "ร้านขนมปัง"
     ];    
 
     const results = await Promise.all(
@@ -36,9 +29,9 @@ export const searchPlacesWithReviews = async () => {
 
     // ใช้ Regular Expression เพื่อตรวจสอบว่ามีภาษาไทยในที่อยู่หรือไม่
     const regexThai = /[\u0E00-\u0E7F]/;  
-    // กรองที่มีภาษาไทยในที่อยู่
+    // กรองเฉพาะสถานที่ที่มีที่อยู่เป็นภาษาไทย
     const filteredResults = mergedResults.filter(place =>
-      place.address && regexThai.test(place.address) // ตรวจสอบที่อยู่มีภาษาไทย
+      place.address && regexThai.test(place.address) 
     );
 
     // สำหรับแต่ละสถานที่ ดึงรีวิวมาด้วย
@@ -51,7 +44,7 @@ export const searchPlacesWithReviews = async () => {
             title: place.title,
             address: place.address,
             thumbnail: place.thumbnail || null,
-            reviews: reviews, // เพิ่มรีวิว
+            reviews: reviews, 
           };
         } catch (error) {
           console.error(`ไม่สามารถดึงรีวิวสำหรับสถานที่ ${place.title}`, error);
@@ -60,30 +53,16 @@ export const searchPlacesWithReviews = async () => {
             title: place.title,
             address: place.address,
             thumbnail: place.thumbnail || null,
-            reviews: [], // ถ้าไม่สามารถดึงรีวิวได้ ให้เป็นอาร์เรย์ว่าง
+            reviews: [], 
           };
         }
       })
     );
 
-    // กรองสถานที่ที่มีรีวิว
+    // กรองเฉพาะสถานที่ที่มีรีวิว
     const placesWithReviewsAvailable = placesWithReviews.filter(place => place.reviews.length > 0);
 
-    // ให้เลือกแค่ 2 สถานที่ที่มีรีวิวมากที่สุดจากแต่ละ keyword
-    const placesByKeyword = keywords.map((keyword) => {
-      const placesForKeyword = placesWithReviewsAvailable.filter(place => place.title.includes(keyword));
-
-      // จัดเรียงตามจำนวนรีวิวจากมากไปหาน้อย
-      const sortedPlaces = placesForKeyword.sort((a, b) => b.reviews.length - a.reviews.length);
-
-      // เลือกแค่ 2 สถานที่แรกที่มีรีวิวเยอะที่สุด
-      return sortedPlaces.slice(0, 2); 
-    });
-
-    // รวมสถานที่จากแต่ละ keyword
-    const finalPlaces = placesByKeyword.flat();
-
-    return finalPlaces;
+    return placesWithReviewsAvailable;
     
   } catch (error) {
     console.error("Error fetching places:", error.response?.data || error.message);
