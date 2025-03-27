@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
-import NavBar from './src/components/Navbar'; // Import NavBar
+import NavBar from './src/components/Navbar'; 
 import DetailScreen from './src/screens/Home/DetailScreen';
+import FavoriteScreen from './src/screens/Favorite/FavoriteScreen';
 
 const Stack = createStackNavigator();
 
@@ -14,12 +15,23 @@ const getHeaderTitle = (routeName) => {
     case 'เพิ่มรีวิว': return 'โพสใหม่';
     case 'ที่บันทึกไว้': return 'รายการของฉัน';
     case 'รีวิวของฉัน': return 'รีวิวของฉัน';
-    case 'DetailScreen': return 'รายละเอียด'; // ถ้ามีการใช้ DetailScreen
+    case 'DetailScreen': return 'รายละเอียด';
     default: return 'แอปของฉัน';
   }
 };
 
 const App = () => {
+  const [favoritePlaces, setFavoritePlaces] = useState([]); // เก็บรายการร้านที่ถูกใจ
+
+  const addToFavorites = (place) => {
+    setFavoritePlaces((prev) => {
+      if (!prev.some((item) => item.id === place.id)) {
+        return [...prev, place];
+      }
+      return prev;
+    });
+  };
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -30,7 +42,6 @@ const App = () => {
           headerTitleStyle: { fontSize: 20, fontWeight: 'bold' }
         }}
       >
-        {/* เพิ่ม NavBar ใน Stack.Navigator */}
         <Stack.Screen
           name="Main"
           component={NavBar}
@@ -39,8 +50,23 @@ const App = () => {
             return { title: getHeaderTitle(routeName) };
           }}
         />
-        {/* เพิ่มหน้าจอ DetailScreen */}
-        <Stack.Screen name="Detail" component={DetailScreen} options={{ title: 'รายละเอียด' }} />
+        <Stack.Screen
+          name="DetailScreen"
+          component={DetailScreen}
+          options={{ title: 'รายละเอียด' }}
+          initialParams={{ addToFavorites }}
+        />
+        <Stack.Screen
+          name="FavoriteScreen"
+          component={FavoriteScreen}
+          initialParams={{ favoritePlaces }} // ส่ง favoritePlaces ไปที่ FavoriteScreen
+          listeners={({ navigation }) => ({
+            focus: () => {
+              // รีเฟรชเมื่อกลับมาที่หน้าจอ FavoriteScreen
+              navigation.setParams({ favoritePlaces });
+            },
+          })}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

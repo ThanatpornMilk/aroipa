@@ -1,21 +1,10 @@
-import axios from 'axios';
+import axios from "axios";
 
-const SERPAPI_KEY = " "; 
+const SERPAPI_KEY = "b20b9f17a94954ba64083620986c3fb4341a70aee4a60911d9410161c8f8183d"; // ใส่ API Key ของคุณ
 
-// ฟังก์ชันค้นหาสถานที่
 export const searchPlacesWithReviews = async () => {
   try {
-    const keywords = [
-      "ร้านอาหาร", "ร้านกาแฟ", "ร้านเบเกอรี่", "คาเฟ่", 
-      "ร้านขนม", "ร้านอาหารญี่ปุ่น", "ร้านอาหารอิตาเลียน", 
-      "ร้านชานม", "ร้านเบเกอรี่", "ร้านน้ำผลไม้", "ร้านพิซซ่า",
-      "ร้านอาหารจีน", "ร้านอาหารเกาหลี", "ร้านสเต็ก", "ร้านบาร์บีคิว",
-      "ร้านอาหารซีฟู้ด", "ร้านข้าวมันไก่", "ร้านก๋วยเตี๋ยว", "ร้านข้าวราดแกง", 
-      "ร้านข้าวซอย", "ร้านบิงซู", "ร้านช็อกโกแลต", "ร้านกาแฟสด",
-      "ร้านน้ำปั่น", "ร้านขนมหวาน", "ร้านค็อกเทล", "ร้านไวน์",
-      "ร้านอาหารมังสวิรัติ", "ร้านอาหารอินเดีย", "ร้านอาหารเวียดนาม", "ร้านขนมปัง"
-    ];    
-
+    const keywords = ["ร้านอาหาร", "คาเฟ่", "ร้านกาแฟ", "ร้านเบเกอรี่"];
     const results = await Promise.all(
       keywords.map(async (keyword) => {
         const response = await axios.get("https://serpapi.com/search", {
@@ -27,91 +16,84 @@ export const searchPlacesWithReviews = async () => {
             api_key: SERPAPI_KEY,
           },
         });
+        console.log(`ผลลัพธ์สำหรับ ${keyword}:`, response.data.local_results);
         return response.data.local_results || [];
       })
     );
 
-    // รวมผลลัพธ์ทั้งหมดจากทุก keyword
     const mergedResults = results.flat();
+    console.log("ข้อมูลทั้งหมดที่ดึงมา:", mergedResults);
 
-    // ใช้ Regular Expression เพื่อตรวจสอบว่ามีภาษาไทยในที่อยู่หรือไม่
-    const regexThai = /[\u0E00-\u0E7F]/;  
-    // กรองที่มีภาษาไทยในที่อยู่
-    const filteredResults = mergedResults.filter(place =>
-      place.address && regexThai.test(place.address) // ตรวจสอบที่อยู่มีภาษาไทย
+    const regexThai = /[\u0E00-\u0E7F]/;
+    const filteredResults = mergedResults.filter(
+      (place) => place?.address && regexThai.test(place.address) // ปรับเงื่อนไขกรองที่อยู่
     );
 
-    // สำหรับแต่ละสถานที่ ดึงรีวิวมาด้วย
-    const placesWithReviews = await Promise.all(
+    console.log("ร้านค้าที่ผ่านการกรอง:", filteredResults);
+
+    const placesWithDetails = await Promise.all(
       filteredResults.map(async (place) => {
         try {
-          const reviews = await getPlaceReviews(place.place_id);
+          const details = await getPlaceDetails(place.place_id);
+          if (!details) return {}; // เปลี่ยนจาก null เป็น {}
+
           return {
             place_id: place.place_id,
             title: place.title,
             address: place.address,
+            category: place.type || "ไม่ระบุ",
             thumbnail: place.thumbnail || null,
-            reviews: reviews, // เพิ่มรีวิว
+            rating: place.rating || 0,
+            review_count: place.user_rating_count || 0,
+            opening_hours: details.opening_hours || "ไม่มีข้อมูล",
+            phone_number: details.phone_number || "ไม่มีข้อมูล",
+            reviews: details.reviews || [], // ปรับให้ไม่เป็น undefined
           };
         } catch (error) {
-          console.error(`ไม่สามารถดึงรีวิวสำหรับสถานที่ ${place.title}`, error);
-          return {
-            place_id: place.place_id,
-            title: place.title,
-            address: place.address,
-            thumbnail: place.thumbnail || null,
-            reviews: [], // ถ้าไม่สามารถดึงรีวิวได้ ให้เป็นอาร์เรย์ว่าง
-          };
+          console.error(`ไม่สามารถดึงข้อมูลเพิ่มเติมสำหรับ ${place.title}`, error);
+          return {}; // ให้คืนข้อมูลว่างเมื่อมีข้อผิดพลาด
         }
       })
     );
 
-    // กรองสถานที่ที่มีรีวิว
-    const placesWithReviewsAvailable = placesWithReviews.filter(place => place.reviews.length > 0);
+    const finalResults = placesWithDetails.filter(place => Object.keys(place).length !== 0);
+    console.log("ข้อมูลสุดท้ายที่ส่งไปแสดง:", finalResults);
 
-    // ให้เลือกแค่ 2 สถานที่ที่มีรีวิวมากที่สุดจากแต่ละ keyword
-    const placesByKeyword = keywords.map((keyword) => {
-      const placesForKeyword = placesWithReviewsAvailable.filter(place => place.title.includes(keyword));
-
-      // จัดเรียงตามจำนวนรีวิวจากมากไปหาน้อย
-      const sortedPlaces = placesForKeyword.sort((a, b) => b.reviews.length - a.reviews.length);
-
-      // เลือกแค่ 2 สถานที่แรกที่มีรีวิวเยอะที่สุด
-      return sortedPlaces.slice(0, 2); 
-    });
-
-    // รวมสถานที่จากแต่ละ keyword
-    const finalPlaces = placesByKeyword.flat();
-
-    return finalPlaces;
-    
+    return finalResults;
   } catch (error) {
     console.error("Error fetching places:", error.response?.data || error.message);
     return [];
   }
 };
 
-// ฟังก์ชันดึงรีวิวจากสถานที่
-export const getPlaceReviews = async (placeId) => {
+export const getPlaceDetails = async (placeId) => {
   try {
     const response = await axios.get("https://serpapi.com/search", {
       params: {
-        engine: "google_maps",
-        q: placeId,
-        location: "ประเทศไทย",
-        hl: "th",
+        engine: "google_maps_reviews",
+        place_id: placeId,
         api_key: SERPAPI_KEY,
       },
     });
 
-    // ตรวจสอบผลลัพธ์จาก API และดึงรีวิว
-    const reviews = response.data.reviews || [];
-    return reviews.map((review) => ({
-      source: review.author_name,
-      snippet: review.text,
-    }));
+    const placeData = response.data;
+    return {
+      title: placeData.title || "ไม่ระบุชื่อร้าน",
+      thumbnail: placeData.thumbnail || null,
+      rating: placeData.rating || 0,
+      review_count: placeData.user_rating_count || 0,
+      address: placeData.address || "ไม่มีข้อมูล",
+      opening_hours: placeData.opening_hours?.hours || "ไม่มีข้อมูล",
+      phone_number: placeData.primary_phone || "ไม่มีข้อมูล",
+      reviews: (placeData.reviews || []).map((review) => ({
+        source: review.author_name,
+        rating: review.rating,
+        snippet: review.text,
+        date: review.date || "ไม่ระบุ",
+      })),
+    };
   } catch (error) {
-    console.error("Error fetching reviews:", error.message);
-    throw new Error("ไม่สามารถดึงรีวิวได้");
+    console.error("Error fetching place details:", error.message);
+    return { opening_hours: "ไม่มีข้อมูล", phone_number: "ไม่มีข้อมูล", reviews: [] };
   }
 };
