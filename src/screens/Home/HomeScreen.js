@@ -63,7 +63,8 @@ const HomeScreen = ({ navigation }) => {
             {item.thumbnail && <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />}
             <View style={styles.textContainer}>
               <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.rating}>{item.rating} ⭐ | {item.review_count} รีวิว</Text>
+              <Text style={styles.rating}>{item.rating} ⭐</Text>
+              {/* <Text style={styles.rating}>{item.rating} ⭐ | {item.review_count} รีวิว</Text> */}
             </View>
           </TouchableOpacity>
         )}

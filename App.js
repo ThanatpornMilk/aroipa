@@ -8,6 +8,7 @@ import FavoriteScreen from './src/screens/Favorite/FavoriteScreen';
 import Welcome from './src/screens/Welcome/Welcome';
 import Register from './src/screens/Welcome/Register';
 import Login from './src/screens/Welcome/Login';
+import MyReviewScreen from './src/screens/Review/MyReviewScreen';
 
 const Stack = createStackNavigator();
 
@@ -85,6 +86,12 @@ const App = () => {
             },
           })}
         />
+        <Stack.Screen 
+          name="MyReviewScreen" 
+          component={MyReviewScreen} 
+          options={{ title: 'รีวิวของฉัน' }} 
+        />
+
       </Stack.Navigator>
     </NavigationContainer>
   );
