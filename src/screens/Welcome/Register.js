@@ -13,7 +13,7 @@ const Register = ({ navigation }) => {
             return;
         }
         Alert.alert('ลงทะเบียนสำเร็จ');
-        navigation.navigate('Login'); // กลับไปหน้า Login
+        navigation.navigate('Login'); 
     };
 
     return (

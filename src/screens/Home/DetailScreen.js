@@ -1,30 +1,29 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { getPlaceDetails } from '../../services/SearchPlacesReview';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // นำเข้า AsyncStorage
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DetailScreen = ({ route, navigation }) => {
-  const { placeId, placeData, addToFavorites } = route.params;
+  const { placeId, placeData } = route.params;
   const [placeDetails, setPlaceDetails] = useState(placeData || null);
-  const [loading, setLoading] = useState(placeData ? false : true);
+  const [loading, setLoading] = useState(!placeData);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false); // state สำหรับ bookmark
 
   useEffect(() => {
-    const checkIfFavorite = async () => {
+    const checkIfFavoriteAndBookmarked = async () => {
       try {
         const storedFavorite = await AsyncStorage.getItem(`favorite-${placeId}`);
-        if (storedFavorite === 'true') {
-          setIsFavorite(true);
-        } else {
-          setIsFavorite(false);
-        }
+        const storedBookmark = await AsyncStorage.getItem(`bookmark-${placeId}`);
+        setIsFavorite(storedFavorite === 'true');
+        setIsBookmarked(storedBookmark === 'true');
       } catch (error) {
-        console.error("Error checking favorite status", error);
+        console.error("Error checking status", error);
       }
     };
 
-    checkIfFavorite();
+    checkIfFavoriteAndBookmarked();
 
     if (!placeData) {
       const fetchDetails = async () => {
@@ -38,37 +37,52 @@ const DetailScreen = ({ route, navigation }) => {
         }
       };
       fetchDetails();
+    } else {
+      setLoading(false);
     }
   }, [placeId, placeData]);
 
   const handleFavorite = async () => {
-    if (!placeId) {
-      console.error("placeId is undefined");
-      return;
-    }
-  
     try {
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
+  
+      // บันทึกร้านที่ถูกใจใน AsyncStorage
       await AsyncStorage.setItem(`favorite-${placeId}`, newFavoriteStatus ? 'true' : 'false');
   
-      const favoriteStore = await AsyncStorage.getItem('favoritePlaces');
-      const currentFavorites = favoriteStore ? JSON.parse(favoriteStore) : [];
+      // บันทึก/ลบร้านในรายการ favorite ใน AsyncStorage
+      let favoritePlaces = await AsyncStorage.getItem('favoritePlaces');
+      favoritePlaces = favoritePlaces ? JSON.parse(favoritePlaces) : [];
+  
       if (newFavoriteStatus) {
-        currentFavorites.push(placeDetails); // เพิ่มร้านที่ถูกใจ
+        // เพิ่มร้านที่ถูกใจในรายการ
+        favoritePlaces.push(placeDetails);
       } else {
-        const updatedFavorites = currentFavorites.filter(item => item.placeId !== placeId);
-        await AsyncStorage.setItem('favoritePlaces', JSON.stringify(updatedFavorites)); // ลบร้านที่ถูกใจออก
+        // ลบร้านที่ถูกใจออกจากรายการ
+        favoritePlaces = favoritePlaces.filter(item => item.placeId !== placeId);
       }
   
-      // Update the parent screen (FavoriteScreen) when favorite is toggled
-      navigation.setParams({ favoritePlaces: currentFavorites });
+      // อัพเดตรายการ favorite ใน AsyncStorage
+      await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
   
+      // แก้ไขการรีเฟรชข้อมูลใน FavoriteScreen
+      navigation.setParams({ refreshFavorites: true }); // เพิ่มพารามิเตอร์นี้ให้ FavoriteScreen
+
     } catch (error) {
       console.error("Error updating favorite status", error);
     }
-  };  
-  
+  };
+
+  const handleBookmark = async () => {
+    try {
+      const newBookmarkStatus = !isBookmarked;
+      setIsBookmarked(newBookmarkStatus);
+      await AsyncStorage.setItem(`bookmark-${placeId}`, newBookmarkStatus ? 'true' : 'false');
+    } catch (error) {
+      console.error("Error updating bookmark status", error);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -86,65 +100,68 @@ const DetailScreen = ({ route, navigation }) => {
     );
   }
 
-  const imageUrl = placeDetails.thumbnail || '';
-  const isImageValid = imageUrl.startsWith('http');
-
   return (
-    <FlatList
-      style={styles.container}
-      data={placeDetails.reviews}
-      keyExtractor={(item, index) => index.toString()}
-      ListHeaderComponent={
-        <>
-          {isImageValid ? (
-            <Image source={{ uri: imageUrl }} style={styles.image} />
-          ) : (
-            <Text style={{ color: 'red', textAlign: 'center' }}>ไม่พบรูปภาพ</Text>
-          )}
-          <View style={styles.header}>
-            <Text style={styles.title}>{placeDetails.title || "ชื่อร้านไม่ระบุ"}</Text>
-            <View style={styles.iconContainer}>
-              <TouchableOpacity onPress={handleFavorite}>
-                <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={28} color="red" />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => alert('Add to bookmarks')}>
-                <Ionicons name="bookmark-outline" size={28} color="orange" style={styles.bookmarkIcon} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          <Text style={styles.rating}>⭐ {placeDetails.rating} ({placeDetails.review_count} รีวิว)</Text>
-          <Text style={styles.openStatus}>
-            <Ionicons name="time-outline" size={16} color="lightgreen" />
-            {Array.isArray(placeDetails.opening_hours) ? placeDetails.opening_hours.join(', ') : placeDetails.opening_hours || "ไม่ระบุ"}
-          </Text>
-
-          <View style={styles.infoContainer}>
-            <Ionicons name="location-outline" size={18} color="#fff" />
-            <Text style={styles.infoText}>{placeDetails.address}</Text>
-          </View>
-          <View style={styles.infoContainer}>
-            <Ionicons name="call-outline" size={18} color="#fff" />
-            <Text style={styles.infoText}>{placeDetails.phone_number || "ไม่ระบุ"}</Text>
-          </View>
-
-          <Text style={styles.sectionTitle}>รีวิวจากลูกค้า</Text>
-        </>
-      }
-      renderItem={({ item }) => (
-        <View style={styles.reviewCard}>
-          <Text style={styles.reviewAuthor}>{item.source}</Text>
-          <Text style={styles.reviewText}>{item.snippet}</Text>
-        </View>
+    <ScrollView style={styles.container}>
+      {placeDetails.thumbnail ? (
+        <Image source={{ uri: placeDetails.thumbnail }} style={styles.image} resizeMode="cover" />
+      ) : (
+        <Text style={{ color: 'red', textAlign: 'center' }}>ไม่พบรูปภาพ</Text>
       )}
-    />
+
+      <View style={styles.header}>
+        <Text style={styles.title}>{placeDetails.title || "ชื่อร้านไม่ระบุ"}</Text>
+        <View style={styles.iconGroup}>
+          <TouchableOpacity onPress={handleFavorite}>
+            <Ionicons name={isFavorite ? "heart" : "heart-outline"} size={28} color="red" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleBookmark} style={styles.bookmarkIcon}>
+            <Ionicons name={isBookmarked ? "bookmark" : "bookmark-outline"} size={28} color="#CECECE" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.rating}>⭐ {placeDetails.rating}</Text>
+
+      <View style={styles.divider} />
+
+      <View style={styles.addressContainer}>
+        <View style={styles.addressBackground}>
+          <View style={styles.locationIconWrapper}>
+            <Ionicons name="location-sharp" size={20} color="#FF8A02" />
+          </View>
+          <Text style={styles.addressText}>{placeDetails.address || "ที่อยู่นี้ไม่มีข้อมูล"}</Text>
+        </View>
+      </View>
+
+      {placeDetails.reviews && placeDetails.reviews.length > 0 ? (
+        <View style={styles.reviewsContainer}>
+          <Text style={styles.sectionTitle}>รีวิวจากผู้ใช้:</Text>
+          {placeDetails.reviews.map((review, index) => (
+            <View key={index} style={styles.reviewItem}>
+              <View style={styles.reviewProfileContainer}>
+                <View style={styles.reviewProfileImage}>
+                  <Ionicons name="person-circle" size={40} color="#FF8A02" />
+                </View>
+                <View>
+                  <Text style={styles.reviewAuthor}>{review.source}</Text>
+                  <Text style={styles.reviewRating}>{Array(review.rating).fill('⭐').join('')}</Text>
+                </View>
+              </View>
+              <Text style={styles.reviewText}>{review.snippet}</Text>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.noReviewsText}>ไม่มีรีวิว</Text>
+      )}
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#141414', 
+    backgroundColor: '#141414' 
   },
   loadingContainer: { 
     flex: 1, 
@@ -159,70 +176,112 @@ const styles = StyleSheet.create({
   image: { 
     width: '100%', 
     height: 160, 
-    marginLeft: 0, 
-    marginRight: 0, 
-    borderRadius: 0, 
-    resizeMode: 'cover' 
+    marginBottom: 10 
   },
   header: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    marginTop: 10 ,
-    paddingHorizontal: 10 
+    paddingHorizontal: 15, 
+    marginTop: 10 
   },
   title: { 
     fontSize: 20, 
-    fontWeight: 'bold', 
-    color: '#fff',
+    fontWeight: '700', 
+    color: '#fff', 
+    flex: 1 
   },
-  iconContainer: {
+  iconGroup: { 
     flexDirection: 'row', 
-    alignItems: 'center',
+    justifyContent: 'flex-end' 
   },
-  bookmarkIcon: {
-    marginLeft: 10, 
+  bookmarkIcon: { 
+    marginLeft: 15 
   },
   rating: { 
     color: '#fff', 
-    marginTop: 5 ,
-    paddingHorizontal: 10 
+    paddingHorizontal: 15, 
+    marginTop: 5 
   },
-  openStatus: { 
-    color: 'lightgreen', 
-    marginTop: 10 ,
-    paddingHorizontal: 10 
+  divider: { 
+    height: 1, 
+    backgroundColor: '#444', 
+    marginHorizontal: 15, 
+    marginVertical: 10 
   },
-  infoContainer: { 
+  addressContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    marginTop: 10 ,
-    paddingHorizontal: 10 
+    marginHorizontal: 15, 
+    marginTop: 4 
   },
-  infoText: { 
+  addressBackground: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#2E2E2E', 
+    borderRadius: 10, 
+    padding: 10 
+  },
+  locationIconWrapper: { 
+    backgroundColor: '#D9D9D9', 
+    borderRadius: 10, 
+    padding: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginRight: 12 
+  },
+  addressText: { 
     color: '#fff', 
-    marginLeft: 5 
+    fontSize: 14, 
+    flexShrink: 1 
+  },
+  reviewsContainer: { 
+    paddingHorizontal: 15, 
+    marginTop: 20 
   },
   sectionTitle: { 
     fontSize: 16, 
+    fontWeight: '700', 
     color: '#fff', 
-    marginTop: 20, 
-    fontWeight: 'bold' ,
-    paddingHorizontal: 10 
+    marginBottom: 10 
   },
-  reviewCard: { 
-    backgroundColor: '#333', 
+  reviewItem: { 
+    backgroundColor: '#2E2E2E', 
     padding: 10, 
-    borderRadius: 10, 
-    marginBottom: 10 ,
+    borderRadius: 8, 
+    marginBottom: 12 
+  },
+  reviewProfileContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 5 
+  },
+  reviewProfileImage: { 
+    width: 50, 
+    height: 50, 
+    borderRadius: 25, 
+    justifyContent: 'center', 
+    alignItems: 'center' 
   },
   reviewAuthor: { 
-    color: '#ff8c00', 
-    fontWeight: 'bold' 
+    fontSize: 14, 
+    fontWeight: '700', 
+    color: '#FF8A02', 
+    marginBottom: 5 
+  },
+  reviewRating: { 
+    fontSize: 10, 
+    color: 'lightgreen', 
+    marginBottom: 5 
   },
   reviewText: { 
-    color: '#fff', 
-    marginTop: 5 
+    fontSize: 14, 
+    color: '#fff' 
   },
+  noReviewsText: { 
+    color: '#fff', 
+    paddingHorizontal: 15, 
+    marginTop: 10 
+  }
 });
 
 export default DetailScreen;

@@ -1,33 +1,85 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
-import { searchPlacesWithReviews } from '../../services/SearchPlacesReview';
+import axios from "axios";
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
+import { searchPlacesWithReviews } from '../../services/SearchPlacesReview'; // assuming you have this method already
+import SearchBox from '../../components/SearchBox';
+import PlaceCard from '../../components/PlaceCard';
+
+const DEFAULT_API_KEY = "CZxDJhcVsxoBHXRsELe1gE28"; // ค่าเริ่มต้น API Key ใหม่ของคุณ
+const CACHE_KEY = 'cachedPlaces';
+const CACHE_DURATION = 3600 * 1000; // 1 ชั่วโมง (ปรับตามที่ต้องการ)
 
 const HomeScreen = ({ navigation }) => {
-  const [places, setPlaces] = useState([]);  // ข้อมูลทั้งหมด
-  const [filteredPlaces, setFilteredPlaces] = useState([]);  // ข้อมูลที่กรองแล้ว
+  const [places, setPlaces] = useState([]);
+  const [filteredPlaces, setFilteredPlaces] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState(''); // state สำหรับคำค้นหา
+  const [searchText, setSearchText] = useState('');
+  const hasFetched = useRef(false);
+  const [currentApiKey, setCurrentApiKey] = useState(DEFAULT_API_KEY);
+
+  // ฟังก์ชันเพื่อตรวจสอบการเปลี่ยน API Key
+  const checkApiKeyChange = async () => {
+    const storedApiKey = await SecureStore.getItemAsync('storedApiKey');
+    if (storedApiKey !== currentApiKey) {
+      // หาก API Key เปลี่ยนแปลง ให้ลบ cache และโหลดข้อมูลใหม่
+      await SecureStore.deleteItemAsync(CACHE_KEY); // ลบข้อมูลเก่าใน cache
+      await SecureStore.setItemAsync('storedApiKey', currentApiKey); // เก็บ API Key ใหม่
+      return true; // Return true for API key changed
+    }
+    return false;
+  };
 
   useEffect(() => {
     const fetchPlaces = async () => {
       setLoading(true);
-      const data = await searchPlacesWithReviews();
-      console.log("ข้อมูลที่ได้จาก API:", data);
-      setPlaces(data);
-      setFilteredPlaces(data); // กำหนด places ที่กรองแล้วให้เป็นข้อมูลเริ่มต้น
+      try {
+        const apiKeyChanged = await checkApiKeyChange();
+
+        // ถ้า API Key เปลี่ยนแปลง หรือไม่มีแคช หรือแคชหมดอายุ
+        const cachedData = await SecureStore.getItemAsync(CACHE_KEY);
+        if (apiKeyChanged || !cachedData) {
+          // ดึงข้อมูลใหม่จาก API
+          const data = await searchPlacesWithReviews(currentApiKey);  // ใช้ currentApiKey ที่เปลี่ยนแปลง
+          console.log("ข้อมูลที่ดึงมาจาก API:", data); // ตรวจสอบข้อมูลที่ได้รับจาก API
+          setPlaces(data);
+          setFilteredPlaces(data);
+          await SecureStore.setItemAsync(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+        } else {
+          const parsedData = JSON.parse(cachedData);
+          if (parsedData && parsedData.data && parsedData.timestamp) {
+            if (Date.now() - parsedData.timestamp < CACHE_DURATION) {
+              setPlaces(parsedData.data);
+              setFilteredPlaces(parsedData.data);
+            } else {
+              // ถ้าแคชหมดอายุ
+              const data = await searchPlacesWithReviews(currentApiKey);  // ใช้ currentApiKey ที่เปลี่ยนแปลง
+              console.log("ข้อมูลที่ดึงมาจาก API หลังจากแคชหมดอายุ:", data); // ตรวจสอบข้อมูลที่ได้รับจาก API
+              setPlaces(data);
+              setFilteredPlaces(data);
+              await SecureStore.setItemAsync(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
       setLoading(false);
     };
+
     fetchPlaces();
-  }, []);
+  }, [currentApiKey]); // เมื่อ currentApiKey เปลี่ยนจะทำการเรียก useEffect ใหม่
 
   const handleSearch = (text) => {
     setSearchText(text);
-    const filteredData = places.filter(item => 
-      item.title.toLowerCase().includes(text.toLowerCase()) || // ค้นหาจากชื่อสถานที่
-      (item.description && item.description.toLowerCase().includes(text.toLowerCase())) // หรือจากคำบรรยาย (ถ้ามี)
+    setFilteredPlaces(
+      places.filter(item => item.title.toLowerCase().includes(text.toLowerCase()))
     );
-    setFilteredPlaces(filteredData); // แสดงข้อมูลที่กรองแล้ว
   };
+
+  const adjustedData = filteredPlaces.length % 2 !== 0 
+    ? [...filteredPlaces, { dummy: true }] 
+    : filteredPlaces;
 
   if (loading) {
     return (
@@ -38,35 +90,31 @@ const HomeScreen = ({ navigation }) => {
     );
   }
 
+  if (filteredPlaces.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>ไม่มีข้อมูลที่แสดง</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.searchBar}
+      <SearchBox
         placeholder="ค้นหา..."
-        placeholderTextColor="#aaa"
         value={searchText}
-        onChangeText={handleSearch} // เมื่อพิมพ์ข้อความจะทำการค้นหาทันที
+        onChangeText={handleSearch} 
       />
-      
+
       <FlatList
-        data={filteredPlaces} // แสดงข้อมูลที่กรองแล้ว
-        keyExtractor={(item, index) => item.place_id ? item.place_id.toString() : index.toString()}
+        data={adjustedData} 
+        keyExtractor={(item, index) => item.place_id ? item.place_id.toString() : `dummy-${index}`}
         numColumns={2}
         renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.placeCard}
-            onPress={() => navigation.navigate('DetailScreen', { 
-              placeId: item.place_id,
-              placeData: item // ส่งข้อมูลร้านไปด้วย
-            })}
-          >
-            {item.thumbnail && <Image source={{ uri: item.thumbnail }} style={styles.thumbnail} />}
-            <View style={styles.textContainer}>
-              <Text style={styles.title} numberOfLines={1}>{item.title}</Text>
-              <Text style={styles.rating}>{item.rating} ⭐</Text>
-              {/* <Text style={styles.rating}>{item.rating} ⭐ | {item.review_count} รีวิว</Text> */}
-            </View>
-          </TouchableOpacity>
+          <PlaceCard
+            item={item}
+            onPress={() => navigation.navigate('DetailScreen', { placeId: item.place_id, placeData: item })}
+          />
         )}
       />
     </View>
@@ -76,51 +124,19 @@ const HomeScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: '#141414',
     paddingHorizontal: 10,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#141414',
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
     color: '#fff',
-  },
-  searchBar: {
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 10,
-    marginVertical: 10,
-    color: '#fff',
-  },
-  placeCard: {
-    backgroundColor: '#B86707', 
-    borderRadius: 10,
-    margin: 5,
-    flex: 1,
-    paddingBottom: 10,
-  },
-  thumbnail: {
-    width: '100%',
-    height: 120,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
-  },
-  textContainer: {
-    padding: 8,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  rating: {
-    fontSize: 12,
-    color: '#fff',
-    marginTop: 4,
   },
 });
 
