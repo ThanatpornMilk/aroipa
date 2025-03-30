@@ -10,8 +10,8 @@ const SearchBox = ({
   iconColor = '#fff', 
   textColor = '#fff',
   placeholderTextColor = '#bbb',
-  secureTextEntry = false, // เพิ่ม props สำหรับการซ่อน/แสดงรหัสผ่าน
-  rightIcon, // สำหรับการแสดงไอคอนขวา
+  secureTextEntry = false, 
+  rightIcon, 
 }) => {
   return (
     <View style={[styles.container, { backgroundColor }]}>

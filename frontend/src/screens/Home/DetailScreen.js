@@ -9,7 +9,7 @@ const DetailScreen = ({ route, navigation }) => {
   const [placeDetails, setPlaceDetails] = useState(placeData || null);
   const [loading, setLoading] = useState(!placeData);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false); // state สำหรับ bookmark
+  const [isBookmarked, setIsBookmarked] = useState(false); 
 
   useEffect(() => {
     const checkIfFavoriteAndBookmarked = async () => {
@@ -47,27 +47,18 @@ const DetailScreen = ({ route, navigation }) => {
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
   
-      // บันทึกร้านที่ถูกใจใน AsyncStorage
       await AsyncStorage.setItem(`favorite-${placeId}`, newFavoriteStatus ? 'true' : 'false');
   
-      // บันทึก/ลบร้านในรายการ favorite ใน AsyncStorage
       let favoritePlaces = await AsyncStorage.getItem('favoritePlaces');
       favoritePlaces = favoritePlaces ? JSON.parse(favoritePlaces) : [];
   
       if (newFavoriteStatus) {
-        // เพิ่มร้านที่ถูกใจในรายการ
         favoritePlaces.push(placeDetails);
       } else {
-        // ลบร้านที่ถูกใจออกจากรายการ
         favoritePlaces = favoritePlaces.filter(item => item.placeId !== placeId);
       }
-  
-      // อัพเดตรายการ favorite ใน AsyncStorage
-      await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
-  
-      // แก้ไขการรีเฟรชข้อมูลใน FavoriteScreen
-      navigation.setParams({ refreshFavorites: true }); // เพิ่มพารามิเตอร์นี้ให้ FavoriteScreen
-
+        await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
+        navigation.setParams({ refreshFavorites: true }); // เพิ่มพารามิเตอร์นี้ให้ FavoriteScreen
     } catch (error) {
       console.error("Error updating favorite status", error);
     }

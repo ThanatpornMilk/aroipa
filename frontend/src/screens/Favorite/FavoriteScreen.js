@@ -12,7 +12,6 @@ const FavoriteScreen = ({ navigation }) => {
       const favoriteStore = await AsyncStorage.getItem('favoritePlaces');
       let places = favoriteStore ? JSON.parse(favoriteStore) : [];
 
-      // กรองร้านที่ซ้ำกัน โดยใช้ place_id เป็นตัวระบุ
       const uniquePlaces = places.filter((place, index, self) =>
         index === self.findIndex((p) => p.place_id === place.place_id)
       );
@@ -23,11 +22,10 @@ const FavoriteScreen = ({ navigation }) => {
     }
   };
 
-  // ใช้ useFocusEffect เพื่อโหลดข้อมูลเมื่อเข้ามาที่หน้าจอนี้
   useFocusEffect(
     React.useCallback(() => {
       loadFavorites();
-    }, []) // รีเฟรชเมื่อกลับมาที่หน้า FavoriteScreen
+    }, []) 
   );
 
   return (

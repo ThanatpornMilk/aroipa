@@ -6,7 +6,7 @@ import SearchBox from "../../components/SearchBox";
 const Login = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [isPasswordVisible, setIsPasswordVisible] = useState(false); // สถานะการแสดงหรือซ่อนรหัสผ่าน
+    const [isPasswordVisible, setIsPasswordVisible] = useState(false); 
 
     const handleLogin = () => {
         if (!username || !password) {
@@ -29,17 +29,17 @@ const Login = ({ navigation }) => {
             />
             <SearchBox 
                 placeholder="รหัสผ่าน"
-                secureTextEntry={!isPasswordVisible} // การแสดงหรือซ่อนรหัสผ่าน
+                secureTextEntry={!isPasswordVisible} 
                 value={password}
                 onChangeText={setPassword}
                 backgroundColor="#F0F8FF"
                 iconColor="#141414"
                 textColor="#888"
                 rightIcon={{
-                    name: isPasswordVisible ? 'eye-off' : 'eye', // เปลี่ยนไอคอนตามสถานะ
-                    size: 24, // ขนาดไอคอน
-                    color: '#141414', // สีของไอคอน
-                    onPress: () => setIsPasswordVisible(!isPasswordVisible), // เปลี่ยนสถานะ
+                    name: isPasswordVisible ? 'eye-off' : 'eye', 
+                    size: 24,
+                    color: '#141414', 
+                    onPress: () => setIsPasswordVisible(!isPasswordVisible), 
                 }}
             />
             <CustomButton 

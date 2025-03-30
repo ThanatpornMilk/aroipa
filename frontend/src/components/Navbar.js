@@ -13,7 +13,7 @@ const NavBar = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // ซ่อน header
+        headerShown: false, 
         tabBarStyle: { backgroundColor: '#212329' },
         tabBarActiveTintColor: '#FFA500',
         tabBarInactiveTintColor: '#A9A4B0',

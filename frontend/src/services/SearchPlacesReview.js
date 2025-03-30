@@ -65,7 +65,7 @@ export const searchPlacesWithReviews = async (apiKey) => {
   }
 };
 
-// ✅ ฟังก์ชันดึงรายละเอียดร้านค้า
+// ฟังก์ชันดึงรายละเอียดร้านค้า
 export const getPlaceDetails = async (placeId) => {
   try {
     const response = await axios.get("https://www.searchapi.io/api/v1/search", {
