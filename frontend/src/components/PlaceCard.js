@@ -25,6 +25,7 @@ const styles = StyleSheet.create({
     margin: 5,
     flex: 1,
     paddingBottom: 10,
+    maxWidth: '48%', // จำกัดขนาดให้พอดีกับคอลัมน์
   },
   thumbnail: {
     width: '100%',

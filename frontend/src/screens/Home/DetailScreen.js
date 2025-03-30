@@ -9,7 +9,7 @@ const DetailScreen = ({ route, navigation }) => {
   const [placeDetails, setPlaceDetails] = useState(placeData || null);
   const [loading, setLoading] = useState(!placeData);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false); 
+  const [isBookmarked, setIsBookmarked] = useState(false); // state สำหรับ bookmark
 
   useEffect(() => {
     const checkIfFavoriteAndBookmarked = async () => {
@@ -47,18 +47,29 @@ const DetailScreen = ({ route, navigation }) => {
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
   
+      // บันทึกร้านที่ถูกใจใน AsyncStorage
       await AsyncStorage.setItem(`favorite-${placeId}`, newFavoriteStatus ? 'true' : 'false');
   
+      // บันทึก/ลบร้านในรายการ favorite ใน AsyncStorage
       let favoritePlaces = await AsyncStorage.getItem('favoritePlaces');
       favoritePlaces = favoritePlaces ? JSON.parse(favoritePlaces) : [];
   
       if (newFavoriteStatus) {
+        // เพิ่มร้านที่ถูกใจในรายการ
         favoritePlaces.push(placeDetails);
       } else {
-        favoritePlaces = favoritePlaces.filter(item => item.placeId !== placeId);
+        // ลบร้านที่ถูกใจออกจากรายการ
+        favoritePlaces = favoritePlaces.filter(item => item.place_id !== placeId); // ใช้ place_id แทน placeId เพื่อให้ตรงกัน
       }
-        await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
-        navigation.setParams({ refreshFavorites: true }); // เพิ่มพารามิเตอร์นี้ให้ FavoriteScreen
+  
+      // อัพเดตรายการ favorite ใน AsyncStorage
+      await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
+  
+      // รีเฟรชข้อมูลใน FavoriteScreen
+      navigation.setParams({ refreshFavorites: true }); // ส่งคำสั่งให้ FavoriteScreen รีเฟรชข้อมูล
+  
+      // กลับไปยังหน้าก่อนหน้า
+      // navigation.goBack(); // หรือ navigation.navigate('FavoriteScreen') เพื่อกลับไปหน้า FavoriteScreen
     } catch (error) {
       console.error("Error updating favorite status", error);
     }
@@ -69,6 +80,26 @@ const DetailScreen = ({ route, navigation }) => {
       const newBookmarkStatus = !isBookmarked;
       setIsBookmarked(newBookmarkStatus);
       await AsyncStorage.setItem(`bookmark-${placeId}`, newBookmarkStatus ? 'true' : 'false');
+
+      // ถ้า bookmark ถูกเปิดใช้งาน (true) เท่านั้น ให้นำทางไป MyListScreen
+      if (newBookmarkStatus) {
+        const savedLists = await AsyncStorage.getItem('savedList');
+        const myLists = savedLists ? JSON.parse(savedLists) : [];
+        myLists.push(placeDetails); // เพิ่มร้านที่ถูกบุ๊คมาร์ค
+
+        // อัพเดตรายการใน AsyncStorage
+        await AsyncStorage.setItem('savedList', JSON.stringify(myLists));
+
+        navigation.reset({
+          index: 0,
+          routes: [
+            {
+              name: 'Main',
+              params: { screen: 'ที่บันทึกไว้', myLists: myLists }, // ส่งข้อมูล myLists ไปยังหน้าหลัก
+            },
+          ],
+        });
+      }
     } catch (error) {
       console.error("Error updating bookmark status", error);
     }

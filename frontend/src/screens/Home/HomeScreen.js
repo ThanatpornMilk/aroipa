@@ -2,11 +2,11 @@ import axios from "axios";
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { searchPlacesWithReviews } from '../../services/SearchPlacesReview'; 
+import { searchPlacesWithReviews } from '../../services/SearchPlacesReview'; // assuming you have this method already
 import SearchBox from '../../components/SearchBox';
 import PlaceCard from '../../components/PlaceCard';
 
-const DEFAULT_API_KEY = "CZxDJhcVsxoBHXRsELe1gE28"; // ค่าเริ่มต้น API Key ใหม่ของคุณ
+const DEFAULT_API_KEY = "2JDE2HnTp59vjVwJboatbgck"; // ค่าเริ่มต้น API Key ใหม่ของคุณ
 const CACHE_KEY = 'cachedPlaces';
 const CACHE_DURATION = 3600 * 1000; // 1 ชั่วโมง (ปรับตามที่ต้องการ)
 
@@ -22,9 +22,10 @@ const HomeScreen = ({ navigation }) => {
   const checkApiKeyChange = async () => {
     const storedApiKey = await SecureStore.getItemAsync('storedApiKey');
     if (storedApiKey !== currentApiKey) {
+      // หาก API Key เปลี่ยนแปลง ให้ลบ cache และโหลดข้อมูลใหม่
       await SecureStore.deleteItemAsync(CACHE_KEY); // ลบข้อมูลเก่าใน cache
       await SecureStore.setItemAsync('storedApiKey', currentApiKey); // เก็บ API Key ใหม่
-      return true; 
+      return true; // Return true for API key changed
     }
     return false;
   };
@@ -35,10 +36,12 @@ const HomeScreen = ({ navigation }) => {
       try {
         const apiKeyChanged = await checkApiKeyChange();
 
+        // ถ้า API Key เปลี่ยนแปลง หรือไม่มีแคช หรือแคชหมดอายุ
         const cachedData = await SecureStore.getItemAsync(CACHE_KEY);
         if (apiKeyChanged || !cachedData) {
           // ดึงข้อมูลใหม่จาก API
-          const data = await searchPlacesWithReviews(currentApiKey);  
+          const data = await searchPlacesWithReviews(currentApiKey);  // ใช้ currentApiKey ที่เปลี่ยนแปลง
+          console.log("ข้อมูลที่ดึงมาจาก API:", data); // ตรวจสอบข้อมูลที่ได้รับจาก API
           setPlaces(data);
           setFilteredPlaces(data);
           await SecureStore.setItemAsync(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
@@ -49,7 +52,9 @@ const HomeScreen = ({ navigation }) => {
               setPlaces(parsedData.data);
               setFilteredPlaces(parsedData.data);
             } else {
-              const data = await searchPlacesWithReviews(currentApiKey);  
+              // ถ้าแคชหมดอายุ
+              const data = await searchPlacesWithReviews(currentApiKey);  // ใช้ currentApiKey ที่เปลี่ยนแปลง
+              console.log("ข้อมูลที่ดึงมาจาก API หลังจากแคชหมดอายุ:", data); // ตรวจสอบข้อมูลที่ได้รับจาก API
               setPlaces(data);
               setFilteredPlaces(data);
               await SecureStore.setItemAsync(CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));

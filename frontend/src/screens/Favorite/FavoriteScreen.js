@@ -4,28 +4,31 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import PlaceCard from '../../components/PlaceCard';
 
-const FavoriteScreen = ({ navigation }) => {
+const FavoriteScreen = ({ navigation, route }) => {
   const [favoritePlaces, setFavoritePlaces] = useState([]);
 
   const loadFavorites = async () => {
     try {
       const favoriteStore = await AsyncStorage.getItem('favoritePlaces');
       let places = favoriteStore ? JSON.parse(favoriteStore) : [];
-
+  
+      // กรองร้านที่ซ้ำกัน โดยใช้ place_id เป็นตัวระบุ
       const uniquePlaces = places.filter((place, index, self) =>
         index === self.findIndex((p) => p.place_id === place.place_id)
       );
-
+  
       setFavoritePlaces(uniquePlaces);
-    } catch (error) {
+    } catch (error) { 
       console.error("Error loading favorite places", error);
     }
   };
 
+  // ใช้ useFocusEffect เพื่อโหลดข้อมูลเมื่อเข้ามาที่หน้าจอนี้
   useFocusEffect(
     React.useCallback(() => {
       loadFavorites();
-    }, []) 
+      navigation.setParams({ refreshFavorites: false }); // รีเซ็ตพารามิเตอร์
+    }, [route.params?.refreshFavorites])
   );
 
   return (
@@ -48,6 +51,7 @@ const FavoriteScreen = ({ navigation }) => {
               }}
             />
           )}
+          
         />
       )}
     </View>
@@ -59,6 +63,7 @@ const styles = StyleSheet.create({
     flex: 1, 
     padding: 10, 
     backgroundColor: '#141414',
+    
   },
   message: { 
     color: '#fff', 
