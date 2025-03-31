@@ -34,20 +34,28 @@ app.post('/register', async (req, res) => {
             return res.status(400).json({ message: 'กรุณากรอกข้อมูลให้ครบ' });
         }
 
-        // ตรวจสอบว่า username มีอยู่ในฐานข้อมูลหรือไม่
         db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
+            if (err) {
+                return res.status(500).json({ message: 'เกิดข้อผิดพลาดในการตรวจสอบฐานข้อมูล' });
+            }
             if (user) {
                 return res.status(400).json({ message: 'ชื่อผู้ใช้นี้ถูกใช้ไปแล้ว' });
             }
 
             const encryptedPassword = await bcrypt.hash(password, 10);
-            db.run(`INSERT INTO users (username, password) VALUES (?, ?)`, [username, encryptedPassword], function(err) {
-                if (err) return res.status(400).json({ message: 'เกิดข้อผิดพลาดในการลงทะเบียน' });
-                res.json({ message: 'ลงทะเบียนสำเร็จ' });
-            });
+            db.run(
+                'INSERT INTO users (username, password) VALUES (?, ?)',
+                [username, encryptedPassword],
+                function (err) {
+                    if (err) {
+                        return res.status(500).json({ message: 'เกิดข้อผิดพลาดในการลงทะเบียน' });
+                    }
+                    res.status(201).json({ message: 'ลงทะเบียนสำเร็จ' });
+                }
+            );
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
     }
 });
 
@@ -59,14 +67,14 @@ app.post('/login', async (req, res) => {
 
         db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
             if (!user || !(await bcrypt.compare(password, user.password))) {
-                return res.status(400).json({ message: 'Invalid credentials' });
+                return res.status(400).json({ message: 'ข้อมูลไม่ถูกต้อง' });
             }
 
             const token = jwt.sign({ userId: user.id }, SECRET_KEY, { expiresIn: '1h' });
             res.json({ token });
         });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'เกิดข้อผิดพลาด' });
     }
 });
 

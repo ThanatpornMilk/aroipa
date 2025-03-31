@@ -2,19 +2,21 @@ import React, { useState } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import CustomButton from "../../components/CustomButton";
 import SearchBox from "../../components/SearchBox";
+import { registerUser } from "../../services/api";
 
 const Register = ({ navigation }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isPasswordVisible, setIsPasswordVisible] = useState(false); 
 
-    const handleRegister = () => {
-        if (!username || !password) {
-            Alert.alert('ลงทะเบียนไม่สำเร็จ', 'กรุณากรอกข้อมูลให้ครบ');
-            return;
+    const handleRegister = async () => {
+        try {
+            await registerUser(username, password);
+            Alert.alert("ลงทะเบียนสำเร็จ", "โปรดเข้าสู่ระบบด้วยบัญชีของคุณ");
+            navigation.navigate("Login");
+        } catch (error) {
+            Alert.alert("ลงทะเบียนล้มเหลว", error.message);
         }
-        Alert.alert('ลงทะเบียนสำเร็จ');
-        navigation.navigate('Login'); 
     };
 
     return (

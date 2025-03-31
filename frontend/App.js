@@ -7,6 +7,7 @@ import NavBar from './src/components/Navbar';
 import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+
 import DetailScreen from './src/screens/Home/DetailScreen';
 import FavoriteScreen from './src/screens/Favorite/FavoriteScreen';
 import Welcome from './src/screens/Welcome/Welcome';
@@ -98,6 +99,12 @@ const App = () => {
           options={{ title: 'รายละเอียด' }}
           initialParams={{ addToFavorites }}
         />
+
+        {/* <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{ title: 'หน้าแรก' }}
+        /> */}
         <Stack.Screen
           name="FavoriteScreen"
           component={FavoriteScreen}
