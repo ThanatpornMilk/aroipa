@@ -50,13 +50,13 @@ const DetailReviewScreen = ({ route }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // ทำให้ container ขยายเต็มหน้าจอ
+    flex: 1, 
     backgroundColor: "#1a1a1a",
   },
   image: {
     width: "100%",
-    height: 170, // เพิ่มความสูงของรูปภาพ
-    marginBottom: 10, // เพิ่มช่องว่างระหว่างรูปกับเนื้อหา
+    height: 170,
+    marginBottom: 10, 
     borderBottomEndRadius: 5,
   },
   containerText: {
@@ -85,19 +85,17 @@ const styles = StyleSheet.create({
     color: "gold",
   },
   titlereviewContainer: {
-    marginTop: 10, // เพิ่มระยะห่างด้านบน
+    marginTop: 10, 
     paddingLeft: 20,
   },
   reviewContainer: {
-    width: "100%", // ให้ View ขยายเต็มจอ
+    width: "100%", 
     borderTopWidth: 1,
     borderColor: "#343333",
-    marginTop: 10, // เพิ่มระยะห่างด้านบน
-    paddingTop: 5, // เพิ่มช่องว่างระหว่างเส้นกับข้อความ
+    marginTop: 10, 
+    paddingTop: 5, 
   },
   titlereview: {
-    // borderTopWidth: 1,
-    // borderColor: "#343333",
     fontWeight: "bold",
     fontSize: 20,
     color: "white",

@@ -319,10 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     flexShrink: 1 
   },
-  // reviewsContainer: { 
-  //   paddingHorizontal: 15, 
-  //   marginTop: 20 
-  // },
   sectionTitle: { 
     fontSize: 16,
     fontWeight: '700', 

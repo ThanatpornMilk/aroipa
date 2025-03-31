@@ -33,10 +33,10 @@ const NewListScreen = () => {
       alert('กรุณากรอกชื่อรายการ');
       return;
     }
-    // if (!image) {
-    //   alert('กรุณาเลือกรูปภาพ');
-    //   return;
-    // }
+    if (!image) {
+      alert('กรุณาเลือกรูปภาพ');
+      return;
+    }
 
     const newItem = { title, image };
 
@@ -68,19 +68,15 @@ const NewListScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* ปุ่มย้อนกลับ */}
       <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} />
 
-      {/* ช่องป้อนข้อมูล */}
       <InputField 
         value={title} 
         onChangeText={setTitle} 
       />
 
-      {/* กล่องเลือกรูปภาพ */}
       <ImagePickerComponent image={image} pickImage={pickImage} />
 
-      {/* ปุ่มบันทึก */}
       <CustomButton 
         onPress={handleSave} 
         title = "บันทึก"

@@ -32,8 +32,8 @@ const styles = StyleSheet.create({
     paddingBottom: 2, 
   },
   logo: {
-    width: 220,
-    height: 220,
+    width: 300,
+    height: 300,
   },
   bottomSection: {
     backgroundColor: '#FDDF1C',
