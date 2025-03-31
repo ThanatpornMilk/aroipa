@@ -1,57 +1,98 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
-import { useRoute } from '@react-navigation/native'; // ใช้ useRoute เพื่อรับ params
+import { View, Text, Image, StyleSheet, FlatList } from 'react-native';
+import { useRoute } from '@react-navigation/native';
 
 const DetailListScreen = () => {
   const route = useRoute();
-  const { item } = route.params; // รับข้อมูล item ที่ส่งมาจาก MyListScreen
+  const selectedList = route.params?.selectedList;
 
-  // ตรวจสอบว่า item และ item.title มีค่าหรือไม่
-  const itemName = item?.title || "ไม่มีชื่อรายการ"; // ถ้าไม่มีชื่อรายการจะใช้ข้อความ "ไม่มีชื่อรายการ"
-  const itemImage = item?.image || null; // ถ้าไม่มีรูปภาพจะให้เป็น null
+  if (!selectedList) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.noDataText}>ไม่มีข้อมูลรายการที่บันทึกไว้</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* แสดงรูปภาพ */}
-      {itemImage ? (
-        <Image source={{ uri: itemImage }} style={styles.image} resizeMode="cover" />
-      ) : (
-        <Text style={styles.noImageText}>ไม่มีรูปภาพ</Text>
-      )}
-      
-      {/* แสดงชื่อรายการทางซ้าย */}
-      <Text style={styles.title}>{itemName}</Text>
+      {/* แสดงชื่อและรูปของรายการ */}
+      <View style={styles.listHeader}>
+        {selectedList.thumbnail ? (
+          <Image source={{ uri: selectedList.thumbnail }} style={styles.listImage} resizeMode="cover" />
+        ) : (
+          <Text style={styles.noImageText}>ไม่มีรูปภาพ</Text>
+        )}
+        <Text style={styles.listTitle}>{selectedList.title}</Text>
+      </View>
+
+      {/* แสดงรายการบุ๊คมาร์คที่เพิ่มเข้าไป */}
+      <FlatList
+        data={selectedList.places}
+        keyExtractor={(item) => item.placeId.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.listItem}>
+            {item.thumbnail ? (
+              <Image source={{ uri: item.thumbnail }} style={styles.image} resizeMode="cover" />
+            ) : (
+              <Text style={styles.noImageText}>ไม่มีรูปภาพ</Text>
+            )}
+            <Text style={styles.listItemText}>{item.title}</Text>
+            <Text style={styles.listItemText}>ที่อยู่: {item.address}</Text>
+            <Text style={styles.listItemText}>หมวดหมู่: {item.category}</Text>
+          </View>
+        )}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 0,
+  container: { 
+    flex: 1, 
     backgroundColor: '#111',
-    justifyContent: 'flex-start',  
+    padding: 15
+  },
+  listHeader: {
     alignItems: 'center',
-    alignItems: 'flex-start',      // จัดตำแหน่งเนื้อหาทางซ้าย      
+    marginBottom: 20
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  listTitle: { 
+    fontSize: 20, 
+    fontWeight: 'bold', 
     color: '#fff',
-    marginTop: 10, 
-    width: '100%', 
-    paddingLeft: 15, 
+    marginTop: 10 
   },
-  image: {
+  listImage: { 
+    width: 100, 
+    height: 100, 
+    borderRadius: 10 
+  },
+  listItem: { 
+    padding: 15, 
+    backgroundColor: '#2E2E2E', 
+    marginBottom: 10, 
+    borderRadius: 8 
+  },
+  listItemText: { 
+    color: '#fff', 
+    fontSize: 16 
+  },
+  image: { 
     width: '100%', 
     height: 200, 
-    marginBottom: 10,
+    marginBottom: 10 
   },
-  noImageText: {
-    fontSize: 18,
-    color: 'gray',
-    marginTop: 10,
+  noImageText: { 
+    color: 'gray', 
+    textAlign: 'center' 
   },
+  noDataText: { 
+    color: 'white', 
+    textAlign: 'center', 
+    marginTop: 20, 
+    fontSize: 16 
+  }
 });
 
 export default DetailListScreen;

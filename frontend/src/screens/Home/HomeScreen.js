@@ -6,7 +6,7 @@ import { searchPlacesWithReviews } from '../../services/SearchPlacesReview'; // 
 import SearchBox from '../../components/SearchBox';
 import PlaceCard from '../../components/PlaceCard';
 
-const DEFAULT_API_KEY = "2JDE2HnTp59vjVwJboatbgck"; // ค่าเริ่มต้น API Key ใหม่ของคุณ
+const DEFAULT_API_KEY = "NFAD8KepttSR8xj1oWWcsZF4"; // ค่าเริ่มต้น API Key ใหม่ของคุณ
 const CACHE_KEY = 'cachedPlaces';
 const CACHE_DURATION = 3600 * 1000; // 1 ชั่วโมง (ปรับตามที่ต้องการ)
 

@@ -5,7 +5,6 @@ import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/nativ
 import ListItem from '../../components/ListItem';
 import * as ImagePicker from 'expo-image-picker';
 
-
 const MyListScreen = () => {
   const route = useRoute();
   const navigation = useNavigation();
@@ -43,21 +42,29 @@ const MyListScreen = () => {
 
   useFocusEffect(
     React.useCallback(() => {
-      loadSavedList();
+      const loadLists = async () => {
+        const storedLists = await AsyncStorage.getItem('savedList');
+        setLists(storedLists ? JSON.parse(storedLists) : []);
+      };
+      loadLists();
     }, [])
   );
 
   useEffect(() => {
-  if (route.params?.newItem) {
-    const newItem = route.params.newItem;
-    const exists = myLists.some(item => item.placeId === newItem.placeId);
-    if (!exists) {
+    // โหลดลิสต์ที่บันทึกไว้จาก AsyncStorage
+    loadSavedList();
+  }, []);
+  
+  useEffect(() => {
+    if (route.params?.newItem) {
+      const newItem = route.params.newItem; // รับข้อมูลใหม่ที่มาจากหน้า DetailScreen
+  
+      // เพิ่มรายการบุ๊คมาร์คลงในลิสต์ที่มีอยู่แล้ว
       const updatedList = [...myLists, newItem];
-      saveListToStorage(updatedList);
+      saveListToStorage(updatedList); // บันทึกรายการที่อัพเดตลงใน AsyncStorage
     }
-  }
-}, [route.params?.newItem]);
-
+  }, [route.params?.newItem]); // เมื่อมี newItem เข้ามาให้ทำงานนี้
+  
 
   const deleteItem = (index) => {
     Alert.alert("ยืนยันการลบ", "แน่ใจหรือไม่ว่าต้องการลบรายการนี้?", [
@@ -90,16 +97,12 @@ const MyListScreen = () => {
   const handleItemPress = (item) => {
     navigation.navigate('DetailListScreen', { item });
   };
-
   
-  const toggleCategory = (key) => {
-    setForm((prev) => ({
-      ...prev,
-      categories: {
-        ...prev.categories,
-        [key]: !prev.categories[key],
-      },
-    }));
+  const toggleBookmark = (index) => {
+    const updatedList = [...myLists];
+    const itemToUpdate = updatedList[index];
+    itemToUpdate.isBookmarked = !itemToUpdate.isBookmarked; // สลับสถานะบุ๊คมาร์ค
+    saveListToStorage(updatedList);
   };
 
   const pickImage = async () => {
@@ -128,6 +131,7 @@ const MyListScreen = () => {
           numColumns={2}
           columnWrapperStyle={{ justifyContent: 'space-between', paddingHorizontal: 5 }}
           renderItem={({ item, index }) => (
+          <View style={styles.itemContainer}>
             <ListItem 
               item={item} 
               index={index} 
@@ -135,6 +139,10 @@ const MyListScreen = () => {
               onDelete={deleteItem} 
               onPress={() => handleItemPress(item)}
             />
+            {/* <TouchableOpacity onPress={() => toggleBookmark(index)} style={styles.bookmarkButton}>
+                <Text style={styles.bookmarkText}>{item.isBookmarked ? 'ลบจากบุ๊คมาร์ค' : 'เพิ่มในบุ๊คมาร์ค'}</Text>
+              </TouchableOpacity> */}
+            </View>
           )}
         />
       )}
@@ -172,7 +180,6 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#111', 
-  
   },
   emptyText: { 
     textAlign: 'center', 

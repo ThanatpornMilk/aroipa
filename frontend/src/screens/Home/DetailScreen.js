@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Modal, FlatList, Button, Alert } from 'react-native';
 import { getPlaceDetails } from '../../services/SearchPlacesReview';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ReviewCard from '../../components/ReviewCard';
 
 const DetailScreen = ({ route, navigation }) => {
   const { placeId, placeData } = route.params;
   const [placeDetails, setPlaceDetails] = useState(placeData || null);
   const [loading, setLoading] = useState(!placeData);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isBookmarked, setIsBookmarked] = useState(false); // state สำหรับ bookmark
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [lists, setLists] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const checkIfFavoriteAndBookmarked = async () => {
@@ -46,64 +49,101 @@ const DetailScreen = ({ route, navigation }) => {
     try {
       const newFavoriteStatus = !isFavorite;
       setIsFavorite(newFavoriteStatus);
-  
-      // บันทึกร้านที่ถูกใจใน AsyncStorage
+
       await AsyncStorage.setItem(`favorite-${placeId}`, newFavoriteStatus ? 'true' : 'false');
-  
-      // บันทึก/ลบร้านในรายการ favorite ใน AsyncStorage
+
       let favoritePlaces = await AsyncStorage.getItem('favoritePlaces');
       favoritePlaces = favoritePlaces ? JSON.parse(favoritePlaces) : [];
-  
+
       if (newFavoriteStatus) {
-        // เพิ่มร้านที่ถูกใจในรายการ
         favoritePlaces.push(placeDetails);
       } else {
-        // ลบร้านที่ถูกใจออกจากรายการ
-        favoritePlaces = favoritePlaces.filter(item => item.place_id !== placeId); // ใช้ place_id แทน placeId เพื่อให้ตรงกัน
+        favoritePlaces = favoritePlaces.filter(item => item.place_id !== placeId);
       }
-  
-      // อัพเดตรายการ favorite ใน AsyncStorage
+
       await AsyncStorage.setItem('favoritePlaces', JSON.stringify(favoritePlaces));
-  
-      // รีเฟรชข้อมูลใน FavoriteScreen
-      navigation.setParams({ refreshFavorites: true }); // ส่งคำสั่งให้ FavoriteScreen รีเฟรชข้อมูล
-  
-      // กลับไปยังหน้าก่อนหน้า
-      // navigation.goBack(); // หรือ navigation.navigate('FavoriteScreen') เพื่อกลับไปหน้า FavoriteScreen
+      navigation.setParams({ refreshFavorites: true });
     } catch (error) {
       console.error("Error updating favorite status", error);
     }
   };
 
   const handleBookmark = async () => {
-    try {
-      const newBookmarkStatus = !isBookmarked;
-      setIsBookmarked(newBookmarkStatus);
-      await AsyncStorage.setItem(`bookmark-${placeId}`, newBookmarkStatus ? 'true' : 'false');
-
-      // ถ้า bookmark ถูกเปิดใช้งาน (true) เท่านั้น ให้นำทางไป MyListScreen
-      if (newBookmarkStatus) {
-        const savedLists = await AsyncStorage.getItem('savedList');
-        const myLists = savedLists ? JSON.parse(savedLists) : [];
-        myLists.push(placeDetails); // เพิ่มร้านที่ถูกบุ๊คมาร์ค
-
-        // อัพเดตรายการใน AsyncStorage
-        await AsyncStorage.setItem('savedList', JSON.stringify(myLists));
-
-        navigation.reset({
-          index: 0,
-          routes: [
-            {
-              name: 'Main',
-              params: { screen: 'ที่บันทึกไว้', myLists: myLists }, // ส่งข้อมูล myLists ไปยังหน้าหลัก
-            },
-          ],
-        });
+    if (isBookmarked) {
+      // ถ้ากดแล้วเป็นบุคมาร์คแล้ว ให้ลบบุคมาร์ค
+      handleRemoveBookmark();
+    } else {
+      try {
+        // ดึงรายการที่ถูกบันทึกใน AsyncStorage
+        const storedLists = await AsyncStorage.getItem('savedList');
+        const existingLists = storedLists ? JSON.parse(storedLists) : [];
+  
+        if (existingLists.length === 0) {
+          Alert.alert("ไม่มีรายการที่บันทึกไว้", "โปรดสร้างรายการก่อน");
+          return;
+        }
+        setLists(existingLists); // อัพเดตสถานะลิสต์ที่บันทึกไว้
+        setModalVisible(true); // แสดง Modal สำหรับเลือกเพิ่มในลิสต์
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการบันทึก", error);
       }
-    } catch (error) {
-      console.error("Error updating bookmark status", error);
     }
   };
+  
+
+  const handleRemoveBookmark = async () => {
+  try {
+    const storedLists = await AsyncStorage.getItem('savedList');
+    const existingLists = storedLists ? JSON.parse(storedLists) : [];
+
+    const updatedLists = existingLists.map(list => {
+      return {
+        ...list,
+        places: list.places.filter(place => place.placeId !== placeId) // ลบสถานที่ที่ถูกบุคมาร์ค
+      };
+    });
+
+    await AsyncStorage.setItem('savedList', JSON.stringify(updatedLists));
+    setIsBookmarked(false);
+    Alert.alert("ลบสำเร็จ", "รายการนี้ถูกลบออกจากลิสต์ของคุณแล้ว");
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการลบสถานที่ออกจากลิสต์", error);
+  }
+};
+
+
+const handleAddToList = async (selectedListId) => {
+  try {
+    const storedLists = await AsyncStorage.getItem('savedList');
+    let existingLists = storedLists ? JSON.parse(storedLists) : [];
+
+    const updatedLists = existingLists.map(list => {
+      if (list.id === selectedListId) {
+        return {
+          ...list,
+          places: [...(list.places || []), {  // ✅ แก้ตรงนี้ให้แน่ใจว่า places เป็นอาร์เรย์
+            placeId,
+            title: placeDetails.title || "ชื่อร้านไม่ระบุ",
+            thumbnail: placeDetails.thumbnail || "",
+            address: placeDetails.address || "ไม่มีข้อมูลที่อยู่",
+          }]
+        };
+      }
+      return list;
+    });
+
+    await AsyncStorage.setItem('savedList', JSON.stringify(updatedLists));
+    setIsBookmarked(true);
+    setModalVisible(false);
+    Alert.alert("เพิ่มสำเร็จ", "รายการนี้ถูกเพิ่มเข้าไปในลิสต์ของคุณแล้ว");
+
+    const updatedList = updatedLists.find(list => list.id === selectedListId);
+    navigation.navigate('DetailListScreen', { selectedList: updatedLists.find(list => list.id === selectedListId) });
+  } catch (error) {
+    console.error("เกิดข้อผิดพลาดในการเพิ่มสถานที่เข้าไปในลิสต์", error);
+  }
+};
+
 
   if (loading) {
     return (
@@ -129,7 +169,7 @@ const DetailScreen = ({ route, navigation }) => {
       ) : (
         <Text style={{ color: 'red', textAlign: 'center' }}>ไม่พบรูปภาพ</Text>
       )}
-
+  
       <View style={styles.header}>
         <Text style={styles.title}>{placeDetails.title || "ชื่อร้านไม่ระบุ"}</Text>
         <View style={styles.iconGroup}>
@@ -141,11 +181,11 @@ const DetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-
+  
       <Text style={styles.rating}>⭐ {placeDetails.rating}</Text>
-
+  
       <View style={styles.divider} />
-
+  
       <View style={styles.addressContainer}>
         <View style={styles.addressBackground}>
           <View style={styles.locationIconWrapper}>
@@ -154,30 +194,46 @@ const DetailScreen = ({ route, navigation }) => {
           <Text style={styles.addressText}>{placeDetails.address || "ที่อยู่นี้ไม่มีข้อมูล"}</Text>
         </View>
       </View>
-
+  
       {placeDetails.reviews && placeDetails.reviews.length > 0 ? (
-        <View style={styles.reviewsContainer}>
-          <Text style={styles.sectionTitle}>รีวิวจากผู้ใช้:</Text>
-          {placeDetails.reviews.map((review, index) => (
-            <View key={index} style={styles.reviewItem}>
-              <View style={styles.reviewProfileContainer}>
-                <View style={styles.reviewProfileImage}>
-                  <Ionicons name="person-circle" size={40} color="#FF8A02" />
-                </View>
-                <View>
-                  <Text style={styles.reviewAuthor}>{review.source}</Text>
-                  <Text style={styles.reviewRating}>{Array(review.rating).fill('⭐').join('')}</Text>
-                </View>
-              </View>
-              <Text style={styles.reviewText}>{review.snippet}</Text>
-            </View>
-          ))}
-        </View>
+        <ReviewCard reviews={placeDetails.reviews} />
       ) : (
         <Text style={styles.noReviewsText}>ไม่มีรีวิว</Text>
       )}
+          
+          <Modal
+            visible={modalVisible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={() => setModalVisible(false)}
+          >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>
+                เลือกเพิ่มเข้าลิสต์
+                <TouchableOpacity onPress={() => navigation.navigate('NewListScreen')}>
+                  <Ionicons name="add-circle" size={24} color="#FF8A02" />
+                </TouchableOpacity>
+              </Text>
+              <FlatList
+                data={lists}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.listItem}
+                    onPress={() => handleAddToList(item.id)}
+                  >
+                    <Text style={styles.listItemText}>{item.title}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+              <Button title="ยกเลิก" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </Modal>
+
     </ScrollView>
-  );
+  );  
 };
 
 const styles = StyleSheet.create({
@@ -209,8 +265,7 @@ const styles = StyleSheet.create({
   title: { 
     fontSize: 20, 
     fontWeight: '700', 
-    color: '#fff', 
-    flex: 1 
+    color: '#fff', flex: 1 
   },
   iconGroup: { 
     flexDirection: 'row', 
@@ -219,8 +274,7 @@ const styles = StyleSheet.create({
   bookmarkIcon: { 
     marginLeft: 15 
   },
-  rating: { 
-    color: '#fff', 
+  rating: { color: '#fff', 
     paddingHorizontal: 15, 
     marginTop: 5 
   },
@@ -234,10 +288,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     marginHorizontal: 15, 
-    marginTop: 4 
-  },
+    marginTop: 4 },
   addressBackground: { 
-    flexDirection: 'row', 
+    flexDirection: 'row',
     alignItems: 'center', 
     backgroundColor: '#2E2E2E', 
     borderRadius: 10, 
@@ -251,8 +304,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     marginRight: 12 
   },
-  addressText: { 
-    color: '#fff', 
+  addressText: { color: '#fff', 
     fontSize: 14, 
     flexShrink: 1 
   },
@@ -261,7 +313,7 @@ const styles = StyleSheet.create({
     marginTop: 20 
   },
   sectionTitle: { 
-    fontSize: 16, 
+    fontSize: 16,
     fontWeight: '700', 
     color: '#fff', 
     marginBottom: 10 
@@ -274,9 +326,8 @@ const styles = StyleSheet.create({
   },
   reviewProfileContainer: { 
     flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 5 
-  },
+    alignItems: 'center',
+    marginBottom: 5 },
   reviewProfileImage: { 
     width: 50, 
     height: 50, 
@@ -288,8 +339,7 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     fontWeight: '700', 
     color: '#FF8A02', 
-    marginBottom: 5 
-  },
+    marginBottom: 5 },
   reviewRating: { 
     fontSize: 10, 
     color: 'lightgreen', 
@@ -297,13 +347,39 @@ const styles = StyleSheet.create({
   },
   reviewText: { 
     fontSize: 14, 
-    color: '#fff' 
+    color: '#fff'
   },
   noReviewsText: { 
     color: '#fff', 
     paddingHorizontal: 15, 
     marginTop: 10 
-  }
+  },
+  modalContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    backgroundColor: 'rgba(0, 0, 0, 0.5)' 
+  },
+  modalContent: { 
+    backgroundColor: '#fff', 
+    padding: 20, 
+    borderRadius: 10, 
+    width: '80%' 
+  },
+  modalTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    marginBottom: 10, 
+    textAlign: 'center' 
+  },
+  listItem: { 
+    padding: 15, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#ccc' 
+  },
+  listItemText: { 
+    fontSize: 16 
+  },
 });
 
 export default DetailScreen;

@@ -5,7 +5,7 @@ const Welcome = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.topSection}>
-        <Image source={require('../../img/logo.png')} style={styles.logo} />
+        <Image source={require('../../img/logo1.png')} style={styles.logo} />
       </View>
       <View style={styles.bottomSection}>
         <Text style={styles.welcomeText}>ยินดีต้อนรับ</Text>
