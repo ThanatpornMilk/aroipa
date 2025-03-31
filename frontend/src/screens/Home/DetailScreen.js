@@ -288,7 +288,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', 
     alignItems: 'center', 
     marginHorizontal: 15, 
-    marginTop: 4 },
+    marginTop: 4 
+  },
   addressBackground: { 
     flexDirection: 'row',
     alignItems: 'center', 
@@ -308,10 +309,10 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     flexShrink: 1 
   },
-  reviewsContainer: { 
-    paddingHorizontal: 15, 
-    marginTop: 20 
-  },
+  // reviewsContainer: { 
+  //   paddingHorizontal: 15, 
+  //   marginTop: 20 
+  // },
   sectionTitle: { 
     fontSize: 16,
     fontWeight: '700', 
@@ -327,28 +328,30 @@ const styles = StyleSheet.create({
   reviewProfileContainer: { 
     flexDirection: 'row', 
     alignItems: 'center',
-    marginBottom: 5 },
+    marginBottom: 5 
+  },
   reviewProfileImage: { 
     width: 50, 
     height: 50, 
     borderRadius: 25, 
     justifyContent: 'center', 
-    alignItems: 'center' 
+    alignItems: 'center'  
   },
   reviewAuthor: { 
     fontSize: 14, 
     fontWeight: '700', 
     color: '#FF8A02', 
-    marginBottom: 5 },
-  reviewRating: { 
-    fontSize: 10, 
-    color: 'lightgreen', 
     marginBottom: 5 
   },
-  reviewText: { 
-    fontSize: 14, 
-    color: '#fff'
-  },
+  // reviewRating: { 
+  //   fontSize: 10, 
+  //   color: 'lightgreen', 
+  //   marginBottom: 5 
+  // },
+  // reviewText: { 
+  //   fontSize: 14, 
+  //   color: '#fff'
+  // },
   noReviewsText: { 
     color: '#fff', 
     paddingHorizontal: 15, 

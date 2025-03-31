@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const SERPAPI_KEY = "NFAD8KepttSR8xj1oWWcsZF4"; // ใส่ API Key ใหม่ที่คุณต้องการใช้
+const SERPAPI_KEY = ""; // ใส่ API Key ใหม่ที่คุณต้องการใช้
 
 // ฟังก์ชันค้นหาร้านค้าและดึงรีวิว
 export const searchPlacesWithReviews = async (apiKey) => {
